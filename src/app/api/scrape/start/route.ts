@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { ApifyClient } from 'apify-client';
 
-const apifyClient = new ApifyClient({
-    token: process.env.APIFY_API_TOKEN,
-});
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
+    const apifyClient = new ApifyClient({
+        token: process.env.APIFY_API_TOKEN,
+    });
     try {
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
