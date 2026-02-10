@@ -10,11 +10,7 @@ export async function POST(request: Request) {
     });
     try {
         const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
+        // Auth removed for internal app
 
         const { jobId } = await request.json();
 
@@ -30,14 +26,14 @@ export async function POST(request: Request) {
         }
 
         if (!job.apify_run_id) {
-            return NextResponse.json({ error: 'No Apify Run ID associated with this job' }, { status: 400 });
+            return NextResponse.json({ error: 'No Run ID associated with this job' }, { status: 400 });
         }
 
-        // 2. Fetch Run Status from Apify
+        // 2. Fetch Run Status
         const run = await apifyClient.run(job.apify_run_id).get();
 
         if (!run) {
-            return NextResponse.json({ error: 'Apify run not found' }, { status: 404 });
+            return NextResponse.json({ error: 'Extraction run not found' }, { status: 404 });
         }
 
         let newStatus = job.status;

@@ -10,11 +10,7 @@ export async function POST(request: Request) {
     });
     try {
         const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
+        // Removed auth check for internal app
 
         const body = await request.json();
         const {
@@ -34,19 +30,9 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Either a keyword or Start URLs are required' }, { status: 400 });
         }
 
-        // 1. Check User Credits
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('credits_total, credits_used')
-            .eq('id', user.id)
-            .single();
+        // 1. Skip Credit Check for internal app
 
-        if (!profile || (profile.credits_used || 0) >= (profile.credits_total || 0)) {
-            // Allow free tier leniently for now or enforcing strict check
-            // return NextResponse.json({ error: 'Insufficient credits. Please upgrade.' }, { status: 403 });
-        }
-
-        // 2. Start Apify Actor
+        // 2. Start Actor
         // Using 'epctex/kickstarter-scraper' as requested
         const actorInput = {
             query: keyword,
@@ -83,7 +69,6 @@ export async function POST(request: Request) {
         const { data: job, error } = await supabase
             .from('scraper_jobs')
             .insert({
-                user_id: user.id,
                 keyword: jobLabel,
                 target_count: maxResults,
                 apify_run_id: run.id,

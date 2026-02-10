@@ -7,30 +7,21 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
     try {
         const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
+        // Auth removed for internal app
 
         const { jobId } = await request.json();
-        console.log('Download request for job:', jobId, 'by user:', user.id);
+        console.log('Download request for job:', jobId);
 
-        // 1. Verify Job Ownership first (to ensure security)
+        // 1. Get Job from DB
         const { data: job, error: jobError } = await supabase
             .from('scraper_jobs')
-            .select('id, user_id')
+            .select('id')
             .eq('id', jobId)
             .single();
 
         if (jobError || !job) {
-            console.error('Job not found or access denied:', jobError);
+            console.error('Job not found:', jobError);
             return NextResponse.json({ error: 'Job not found' }, { status: 404 });
-        }
-
-        if (job.user_id !== user.id) {
-            console.error('Permission denied: User', user.id, 'tried to download job owned by', job.user_id);
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }
 
         // 2. Use Admin Client to bypass RLS for results fetching (avoids missing results in export)
@@ -61,7 +52,7 @@ export async function POST(request: Request) {
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Leads');
 
-        // Define Columns with Headers - ALL Apify Fields
+        // Define Columns with Headers - ALL Fields
         worksheet.columns = [
             { header: 'URL', key: 'url', width: 50 },
             { header: 'ID', key: 'kickstarter_id', width: 15 },

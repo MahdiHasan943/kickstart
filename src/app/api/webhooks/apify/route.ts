@@ -40,11 +40,11 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: 'Job not tracked, ignoring.' }, { status: 200 });
         }
 
-        // 2. Fetch Run Info from Apify
+        // 2. Fetch Run Info
         const run = await apifyClient.run(runId).get();
 
         if (!run) {
-            return NextResponse.json({ error: 'Apify run not found' }, { status: 404 });
+            return NextResponse.json({ error: 'Extraction run not found' }, { status: 404 });
         }
 
         let newStatus = job.status;

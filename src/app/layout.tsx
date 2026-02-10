@@ -6,7 +6,7 @@ import Navbar from '@/components/Navbar';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Kickstart Leads - Scrape Kickstarter Data',
+  title: 'KickstartLeads - Scrape Kickstarter Data',
   description: 'The ultimate tool for scraping leads from Kickstarter projects.',
 };
 

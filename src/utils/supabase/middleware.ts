@@ -54,19 +54,6 @@ export async function updateSession(request: NextRequest) {
         }
     )
 
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
-
-    // Protect Dashboard
-    if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
-        return NextResponse.redirect(new URL('/login', request.url))
-    }
-
-    // Redirect logged in users away from login/signup
-    if (user && request.nextUrl.pathname.startsWith('/login')) {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
-
+    // Simplified middleware for internal app - no auth protection
     return response
 }
