@@ -23,7 +23,7 @@ export async function POST(request: Request) {
             pledged,
             raised,
             sort,
-            maxResults = 10
+            maxResults = 99999
         } = body;
 
         if (!keyword && (!startUrls || startUrls.length === 0)) {

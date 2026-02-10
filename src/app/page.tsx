@@ -13,7 +13,6 @@ export default function Home() {
   const [pledged, setPledged] = useState('All');
   const [raised, setRaised] = useState('All');
   const [sort, setSort] = useState('magic');
-  const [maxResults, setMaxResults] = useState(10);
   const [loading, setLoading] = useState(false);
   const [jobs, setJobs] = useState<any[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -183,7 +182,7 @@ export default function Home() {
       const res = await fetch(`/api/scrape/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword, startUrls: urls, category, location, status, goal, pledged, raised, sort, maxResults: Number(maxResults) }),
+        body: JSON.stringify({ keyword, startUrls: urls, category, location, status, goal, pledged, raised, sort }),
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Failed to start extraction');
       fetchJobs();
@@ -210,15 +209,9 @@ export default function Home() {
             </h2>
           </div>
           <form onSubmit={handleScrape} className="p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Keyword / Query</label>
-                <input type="text" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="e.g. 'board games'" className="w-full px-4 py-2 rounded-lg border dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 transition-colors" />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Max Results</label>
-                <input type="number" value={maxResults} onChange={(e) => setMaxResults(Number(e.target.value))} min={1} max={1000} className="w-full px-4 py-2 rounded-lg border dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500" />
-              </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Keyword / Query</label>
+              <input type="text" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="e.g. 'board games' or 'smart home tech'" className="w-full px-4 py-2 rounded-lg border dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 transition-colors" />
             </div>
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Start URLs (Optional)</label>
