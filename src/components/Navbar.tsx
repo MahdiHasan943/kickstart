@@ -2,13 +2,15 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { LogOut, User, Menu } from 'lucide-react';
+import { LogOut, User, Menu, LogIn } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import LoginModal from './LoginModal';
 
 export default function Navbar() {
     const router = useRouter();
     const supabase = createClient();
     const [user, setUser] = useState<any>(null);
+    const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
     useEffect(() => {
         const getUser = async () => {
@@ -48,37 +50,52 @@ export default function Navbar() {
                                 <Link href="/dashboard" className="text-gray-700 hover:text-indigo-600 dark:text-gray-300">
                                     Dashboard
                                 </Link>
-                                <div className="relative group">
-                                    <button className="flex items-center space-x-1 text-gray-700 hover:text-indigo-600 focus:outline-none">
+                                <div className="relative group flex items-center h-full">
+                                    <button className="flex items-center space-x-1 p-2 text-gray-700 dark:text-gray-300 hover:text-indigo-600 focus:outline-none transition-colors">
                                         <User className="h-5 w-5" />
                                     </button>
-                                    {/* Dropdown */}
-                                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 hidden group-hover:block">
-                                        <button
-                                            onClick={handleSignOut}
-                                            className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left"
-                                        >
-                                            Sign out
-                                        </button>
+
+                                    {/* Transparent bridge + Dropdown */}
+                                    <div className="absolute right-0 top-full pt-1 w-48 hidden group-hover:block z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl py-1 ring-1 ring-black/5 border border-gray-100 dark:border-gray-700">
+                                            <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700">
+                                                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                                            </div>
+                                            <button
+                                                onClick={handleSignOut}
+                                                className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 w-full text-left transition-colors"
+                                            >
+                                                <LogOut className="h-4 w-4" />
+                                                <span>Sign out</span>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </>
                         ) : (
-                            <div className="space-x-4">
-                                <Link href="/login" className="text-gray-700 hover:text-indigo-600 dark:text-gray-300">
+                            <div className="flex items-center space-x-4">
+                                <button
+                                    onClick={() => setIsLoginModalOpen(true)}
+                                    className="text-gray-700 hover:text-indigo-600 dark:text-gray-300 transition-colors"
+                                >
                                     Log in
-                                </Link>
-                                <Link
-                                    href="/login?signup=true"
-                                    className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition"
+                                </button>
+                                <button
+                                    onClick={() => setIsLoginModalOpen(true)}
+                                    className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition shadow-sm hover:shadow-md"
                                 >
                                     Sign up
-                                </Link>
+                                </button>
                             </div>
                         )}
                     </div>
                 </div>
             </div>
+
+            <LoginModal
+                isOpen={isLoginModalOpen}
+                onClose={() => setIsLoginModalOpen(false)}
+            />
         </nav>
     );
 }

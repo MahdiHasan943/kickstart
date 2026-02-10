@@ -10,9 +10,18 @@ export default function LoginPage() {
     const router = useRouter();
 
     useEffect(() => {
+        // Check if user is already logged in
+        const checkUser = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                router.push('/dashboard');
+            }
+        };
+        checkUser();
+
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             (event, session) => {
-                if (event === 'SIGNED_IN') {
+                if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session)) {
                     router.push('/dashboard');
                 }
             }
