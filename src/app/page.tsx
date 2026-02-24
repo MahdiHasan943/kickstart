@@ -4,6 +4,8 @@ import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import { KICKSTARTER_CATEGORIES } from '@/constants/categories';
 
+export const dynamic = 'force-dynamic';
+
 export default function Home() {
   const router = useRouter();
   const [keyword, setKeyword] = useState('');
@@ -26,6 +28,7 @@ export default function Home() {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [role, setRole] = useState<string | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const JOBS_PER_PAGE = 6;
 
   // 1. Memoize Supabase to prevent massive re-renders and hook resets
@@ -153,20 +156,27 @@ export default function Home() {
           return;
         }
 
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', user.id)
           .single();
 
-        const userRole = profile?.role || 'agent';
-        setRole(userRole);
-        if (userRole === 'admin') {
-          fetchJobs();
+        if (profileError) {
+          console.error('Profile fetch error:', profileError);
+          setRole('agent');
+        } else {
+          const userRole = profile?.role || 'agent';
+          setRole(userRole);
+          if (userRole === 'admin') {
+            await fetchJobs();
+          }
         }
       } catch (err) {
-        console.error('Check user error:', err);
+        console.error('Check user crash:', err);
         setRole('agent');
+      } finally {
+        setIsAuthChecking(false);
       }
     };
 
@@ -226,6 +236,17 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-500 font-medium">Loading your account...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (role && role !== 'admin') {
     return (
