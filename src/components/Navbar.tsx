@@ -16,43 +16,34 @@ export default function Navbar() {
     useEffect(() => {
         const getUser = async () => {
             try {
-                const { data: { user }, error: userError } = await supabase.auth.getUser();
-                if (userError) throw userError;
+                // Use getSession() for instant cookie read (no network round trip)
+                const { data: { session } } = await supabase.auth.getSession();
+                setUser(session?.user ?? null);
 
-                setUser(user);
-                if (user) {
-                    const { data: profile, error: profileError } = await supabase
-                        .from('profiles')
-                        .select('role')
-                        .eq('id', user.id)
-                        .single();
-
-                    if (profileError) {
-                        console.warn('Profile fetch error (likely RLS):', profileError.message);
-                        setRole('agent');
-                    } else {
-                        setRole(profile?.role || 'agent');
+                if (session?.user) {
+                    // Use API route which uses service role key - bypasses all RLS
+                    const res = await fetch('/api/auth/role');
+                    if (res.ok) {
+                        const { role } = await res.json();
+                        setRole(role || 'agent');
                     }
                 }
             } catch (err: any) {
                 console.error('Navbar user fetch failed:', err.message);
-                // Don't throw, just let it be null/agent
             }
         };
         getUser();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('Auth state change:', event, session?.user?.email);
             setUser(session?.user ?? null);
 
             if (session?.user) {
                 try {
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('role')
-                        .eq('id', session.user.id)
-                        .single();
-                    setRole(profile?.role || 'agent');
+                    const res = await fetch('/api/auth/role');
+                    if (res.ok) {
+                        const { role } = await res.json();
+                        setRole(role || 'agent');
+                    }
                 } catch (err) {
                     setRole('agent');
                 }
@@ -63,12 +54,12 @@ export default function Navbar() {
             if (event === 'SIGNED_OUT') {
                 setRole(null);
                 setUser(null);
-                router.push('/login');
+                window.location.href = '/login';
             }
         });
 
         return () => subscription.unsubscribe();
-    }, [supabase, router]);
+    }, [supabase]);
 
     // Close menu when route changes
     useEffect(() => {

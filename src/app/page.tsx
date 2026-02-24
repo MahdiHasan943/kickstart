@@ -148,34 +148,44 @@ export default function Home() {
 
   // Initial load and Realtime
   useEffect(() => {
+    // Safety timeout - if auth check takes more than 8 seconds, redirect to login
+    const safetyTimer = setTimeout(() => {
+      console.warn('Auth check timed out - redirecting to login');
+      window.location.href = '/login';
+    }, 8000);
+
     const checkUser = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          router.push('/login');
+        // Use getSession() - reads from local cookie INSTANTLY (no network call)
+        // This prevents the "infinite loading" on page reload
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError || !session?.user) {
+          clearTimeout(safetyTimer);
+          window.location.href = '/login';
           return;
         }
 
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
+        // Fetch role from a dedicated API route that uses the service role key
+        // This bypasses ALL RLS policies and never hangs
+        const roleRes = await fetch('/api/auth/role');
 
-        if (profileError) {
-          console.error('Profile fetch error:', profileError);
-          setRole('agent');
-        } else {
-          const userRole = profile?.role || 'agent';
-          setRole(userRole);
-          if (userRole === 'admin') {
-            await fetchJobs();
-          }
+        if (!roleRes.ok) {
+          window.location.href = '/login';
+          return;
         }
-      } catch (err) {
-        console.error('Check user crash:', err);
+
+        const { role: userRole } = await roleRes.json();
+        setRole(userRole || 'agent');
+
+        if (userRole === 'admin') {
+          await fetchJobs();
+        }
+      } catch (err: any) {
+        console.error('Check user crash:', err.message);
         setRole('agent');
       } finally {
+        clearTimeout(safetyTimer);
         setIsAuthChecking(false);
       }
     };
@@ -183,7 +193,10 @@ export default function Home() {
     checkUser();
 
     const channel = supabase.channel('scraper_jobs_changes').on('postgres_changes', { event: '*', schema: 'public', table: 'scraper_jobs' }, () => { fetchJobs(); }).subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      clearTimeout(safetyTimer);
+      supabase.removeChannel(channel);
+    };
   }, [fetchJobs, supabase, router]);
 
   // STABLE Background Auto-Sync (Every 5 seconds)
