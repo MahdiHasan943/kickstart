@@ -212,12 +212,13 @@ export default function Home() {
       // Logic: Only sync jobs that are NOT completed/failed
       const jobsToSync = jobsRef.current.filter(j =>
         j.status === 'running' || j.status === 'pending' || j.status === 'syncing'
+        // Note: 'aborted', 'failed', 'completed' are terminal — no need to poll
       );
 
       jobsToSync.forEach(job => {
         handleSync(job.id, false); // Quiet sync
       });
-    }, 5000); // Check every 5 seconds for immediate completion
+    }, 5000);
 
     return () => {
       if (syncTimerRef.current) clearInterval(syncTimerRef.current);
@@ -405,22 +406,71 @@ export default function Home() {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(job.created_at).toLocaleString()}</td>
                           <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white max-w-xs truncate">{job.keyword || 'Search'}</td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-3 py-1 inline-flex items-center gap-1.5 text-xs font-semibold rounded-full ${job.status === 'completed' ? 'bg-green-100 text-green-800' : job.status === 'running' || job.status === 'syncing' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>
+                            <span className={`px-3 py-1 inline-flex items-center gap-1.5 text-xs font-semibold rounded-full ${job.status === 'completed'
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                              : job.status === 'running' || job.status === 'syncing'
+                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                                : job.status === 'aborted'
+                                  ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
+                                  : job.status === 'failed'
+                                    ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                                    : 'bg-gray-100 text-gray-800'
+                              }`}>
                               {(job.status === 'running' || job.status === 'syncing') && (
                                 <span className="relative flex h-2 w-2">
                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                                   <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
                                 </span>
                               )}
-                              {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+                              {job.status === 'aborted' ? 'Stopped' : job.status.charAt(0).toUpperCase() + job.status.slice(1)}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{job.results_count || '-'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                            {(job.status === 'running' || job.status === 'syncing') ? (
+                              <div className="flex flex-col items-center gap-0.5">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="relative flex h-2 w-2 shrink-0">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                                  </span>
+                                  <span className="font-bold text-blue-600 dark:text-blue-400 tabular-nums text-base">
+                                    {(job.results_count || 0).toLocaleString()}
+                                  </span>
+                                  <span className="text-xs text-blue-400 font-medium">fetched</span>
+                                </div>
+                                <span className="text-[10px] text-blue-300 dark:text-blue-500 italic">still running...</span>
+                              </div>
+                            ) : job.status === 'completed' ? (
+                              <div className="flex flex-col items-center">
+                                <span className="font-bold text-green-600 dark:text-green-400 tabular-nums text-base">
+                                  {(job.results_count || 0).toLocaleString()}
+                                </span>
+                                <span className="text-[10px] text-green-500 uppercase tracking-wide font-semibold">results</span>
+                              </div>
+                            ) : job.status === 'aborted' ? (
+                              <div className="flex flex-col items-center gap-0.5">
+                                <span className="font-bold text-orange-600 dark:text-orange-400 tabular-nums text-base">
+                                  {(job.results_count || 0).toLocaleString()}
+                                </span>
+                                <span className="text-[10px] text-orange-400 uppercase tracking-wide font-semibold">partial</span>
+                              </div>
+                            ) : job.status === 'failed' && job.results_count > 0 ? (
+                              <div className="flex flex-col items-center gap-0.5">
+                                <span className="font-bold text-red-500 tabular-nums text-base">{job.results_count.toLocaleString()}</span>
+                                <span className="text-[10px] text-red-400 uppercase tracking-wide font-semibold">partial</span>
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-center">
-                            {job.status === 'completed' && (
-                              <button onClick={() => handleDownload(job.id)} className="text-indigo-600 hover:text-indigo-900 font-semibold inline-flex items-center gap-1 text-sm justify-center w-full">
+                            {(job.status === 'completed' || (job.status === 'aborted' && job.results_count > 0)) && (
+                              <button onClick={() => handleDownload(job.id)} className={`font-semibold inline-flex items-center gap-1 text-sm justify-center w-full ${job.status === 'aborted'
+                                ? 'text-orange-500 hover:text-orange-700'
+                                : 'text-indigo-600 hover:text-indigo-900'
+                                }`}>
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-                                Download
+                                {job.status === 'aborted' ? 'Partial' : 'Download'}
                               </button>
                             )}
                           </td>
@@ -429,7 +479,7 @@ export default function Home() {
                               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" /><path d="M16 16h5v5" /></svg>
                               Refresh
                             </button>
-                            {(job.status === 'completed' || job.status === 'failed') && (
+                            {(job.status === 'completed' || job.status === 'failed' || job.status === 'aborted') && (
                               <button onClick={() => handleDelete(job.id)} className="text-red-600 hover:text-red-900 transition-colors" title="Delete">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
                               </button>
