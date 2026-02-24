@@ -1,9 +1,11 @@
 'use client';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { useRouter } from 'next/navigation';
 import { KICKSTARTER_CATEGORIES } from '@/constants/categories';
 
 export default function Home() {
+  const router = useRouter();
   const [keyword, setKeyword] = useState('');
   const [startUrls, setStartUrls] = useState('');
   const [category, setCategory] = useState('');
@@ -23,6 +25,7 @@ export default function Home() {
     message: ''
   });
   const [currentPage, setCurrentPage] = useState(1);
+  const [role, setRole] = useState<string | null>(null);
   const JOBS_PER_PAGE = 6;
 
   // 1. Memoize Supabase to prevent massive re-renders and hook resets
@@ -142,16 +145,44 @@ export default function Home() {
 
   // Initial load and Realtime
   useEffect(() => {
-    fetchJobs();
+    const checkUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          router.push('/login');
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+        const userRole = profile?.role || 'agent';
+        setRole(userRole);
+        if (userRole === 'admin') {
+          fetchJobs();
+        }
+      } catch (err) {
+        console.error('Check user error:', err);
+        setRole('agent');
+      }
+    };
+
+    checkUser();
+
     const channel = supabase.channel('scraper_jobs_changes').on('postgres_changes', { event: '*', schema: 'public', table: 'scraper_jobs' }, () => { fetchJobs(); }).subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [fetchJobs, supabase]);
+  }, [fetchJobs, supabase, router]);
 
   // STABLE Background Auto-Sync (Every 5 seconds)
   // We use a ref for handleSync logic to ensure the interval NEVER resets even if dependencies change
   const syncTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    if (role !== 'admin') return;
+
     if (syncTimerRef.current) clearInterval(syncTimerRef.current);
 
     syncTimerRef.current = setInterval(() => {
@@ -168,7 +199,7 @@ export default function Home() {
     return () => {
       if (syncTimerRef.current) clearInterval(syncTimerRef.current);
     };
-  }, [handleSync]);
+  }, [handleSync, role]);
 
   const handleScrape = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,6 +226,35 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+  if (role && role !== 'admin') {
+    return (
+      <div className="max-w-4xl mx-auto py-20 px-4 text-center">
+        <div className="bg-white dark:bg-gray-800 p-12 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700">
+          <div className="w-20 h-20 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg className="w-10 h-10 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m11-3V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2zm-9 0V9" />
+            </svg>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Access Pending</h1>
+          <p className="text-lg text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+            Welcome to KickstartLeads! You can see the tool when an admin allows you. Please contact your administrator for access.
+          </p>
+          <div className="mt-10">
+            <button
+              onClick={async () => {
+                await supabase.auth.signOut();
+                window.location.href = '/login';
+              }}
+              className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline"
+            >
+              Sign out and try another account
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">

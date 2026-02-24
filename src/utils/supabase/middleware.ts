@@ -54,6 +54,22 @@ export async function updateSession(request: NextRequest) {
         }
     )
 
-    // Simplified middleware for internal app - no auth protection
+    const {
+        data: { user },
+    } = await supabase.auth.getUser()
+
+    // Protected routes logic
+    const isLoginPage = request.nextUrl.pathname.startsWith('/login')
+    const isWebhook = request.nextUrl.pathname.startsWith('/api/webhooks')
+    const isStatic = request.nextUrl.pathname.startsWith('/_next') ||
+        request.nextUrl.pathname.includes('.')
+
+    if (!user && !isLoginPage && !isWebhook && !isStatic) {
+        // no user, potentially respond by redirecting the user to the login page
+        const url = request.nextUrl.clone()
+        url.pathname = '/login'
+        return NextResponse.redirect(url)
+    }
+
     return response
 }

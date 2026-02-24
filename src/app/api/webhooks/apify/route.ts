@@ -1,21 +1,23 @@
 import { NextResponse } from 'next/server';
 import { ApifyClient } from 'apify-client';
 import { createClient } from '@supabase/supabase-js';
+import { getApifyToken } from '@/utils/settings';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-    const apifyClient = new ApifyClient({
-        token: process.env.APIFY_API_TOKEN,
-    });
-
-    // Use Service Role to bypass RLS for webhook updates
-    const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
     try {
+        const apifyToken = await getApifyToken();
+        const apifyClient = new ApifyClient({
+            token: apifyToken,
+        });
+
+        // Use Service Role to bypass RLS for webhook updates
+        const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+
         const body = await request.json();
         const { eventType, eventData, resource } = body;
 

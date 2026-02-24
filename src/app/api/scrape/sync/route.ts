@@ -1,16 +1,24 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { ApifyClient } from 'apify-client';
+import { getApifyToken } from '@/utils/settings';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-    const apifyClient = new ApifyClient({
-        token: process.env.APIFY_API_TOKEN,
-    });
     try {
         const supabase = await createClient();
-        // Auth removed for internal app
+
+        // Check auth
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const apifyToken = await getApifyToken();
+        const apifyClient = new ApifyClient({
+            token: apifyToken,
+        });
 
         const { jobId } = await request.json();
 
