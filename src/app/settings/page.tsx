@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function SettingsPage() {
     const [apifyToken, setApifyToken] = useState('');
@@ -162,15 +163,37 @@ export default function SettingsPage() {
                 </form>
             </div>
 
-            <div className="mt-8 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 p-6 rounded-xl">
-                <h3 className="text-lg font-medium text-indigo-900 dark:text-indigo-300 flex items-center">
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {/* User Management Card */}
+            <Link
+                href="/users"
+                className="mt-8 flex items-center justify-between bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-600 transition-all group"
+            >
+                <div className="flex items-center gap-4">
+                    <div className="h-11 w-11 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center shrink-0 group-hover:bg-indigo-200 dark:group-hover:bg-indigo-900/50 transition-colors">
+                        <svg className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">User Management</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Add users, assign roles (Admin / Agent), and remove accounts.</p>
+                    </div>
+                </div>
+                <svg className="w-5 h-5 text-gray-400 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </Link>
+
+            {/* Info banner */}
+            <div className="mt-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 p-5 rounded-xl">
+                <h3 className="text-sm font-medium text-indigo-900 dark:text-indigo-300 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     Multi-tenant System Info
                 </h3>
-                <p className="mt-2 text-sm text-indigo-800 dark:text-indigo-400">
-                    You are currently logged in as an <strong>Admin</strong>. Admins can manage all jobs and settings. Agent accounts can only manage their own jobs and cannot access this settings page.
+                <p className="mt-1.5 text-sm text-indigo-800 dark:text-indigo-400">
+                    You are logged in as an <strong>Admin</strong>. Admins manage all jobs, users, and settings. Agents can only manage their own jobs.
                 </p>
             </div>
         </div>
